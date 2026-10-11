@@ -122,12 +122,39 @@ export async function openRazorpayCheckout({
   }
 
   return new Promise<void>((resolve, reject) => {
+    // Setup RazorpayWebViewBridge fallback on window if running inside WebView
+    if (typeof window !== 'undefined') {
+      const upiApps = [
+        'com.google.android.apps.nbu.paisa.user',
+        'com.phonepe.app',
+        'net.one97.paytm',
+        'in.org.npci.upiapp',
+        'com.dreamplug.androidapp',
+        'com.whatsapp',
+        'in.amazon.mShop.android.shopping',
+      ]
+      const win = window as unknown as {
+        RazorpayWebViewBridge?: { onLoadWebView: () => void }
+        handleWebViewMessage?: (d: unknown) => void
+      }
+      if (!win.RazorpayWebViewBridge) {
+        win.RazorpayWebViewBridge = {
+          onLoadWebView: () => {
+            if (typeof win.handleWebViewMessage === 'function') {
+              win.handleWebViewMessage({ upi_intent_data: upiApps })
+            }
+          },
+        }
+      }
+    }
+
     const options: Record<string, unknown> = {
       key: effectiveKey,
       amount: amountPaise,
       currency: 'INR',
       name,
       description,
+      webview_intent: true,
       prefill: {
         ...(prefill?.name ? { name: prefill.name } : {}),
         ...(prefill?.email ? { email: prefill.email } : {}),
@@ -136,12 +163,12 @@ export async function openRazorpayCheckout({
       config: {
         display: {
           blocks: {
-            upi: {
+            banks: {
               name: 'Pay via UPI',
               instruments: [{ method: 'upi' }],
             },
           },
-          sequence: ['block.upi'],
+          sequence: ['block.banks'],
           preferences: { show_default_blocks: true },
         },
       },
