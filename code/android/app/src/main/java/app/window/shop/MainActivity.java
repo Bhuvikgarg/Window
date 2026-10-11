@@ -3,6 +3,7 @@ package app.window.shop;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Bundle;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import com.getcapacitor.Bridge;
@@ -11,10 +12,30 @@ import com.getcapacitor.BridgeWebViewClient;
 
 public class MainActivity extends BridgeActivity {
     @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setupWebView();
+    }
+
+    @Override
     public void onStart() {
         super.onStart();
+        setupWebView();
+    }
+
+    private void setupWebView() {
         Bridge currentBridge = getBridge();
         if (currentBridge != null) {
+            WebView webView = currentBridge.getWebView();
+            if (webView != null) {
+                android.webkit.WebSettings settings = webView.getSettings();
+                String userAgent = settings.getUserAgentString();
+                if (userAgent != null && userAgent.contains("; wv")) {
+                    settings.setUserAgentString(userAgent.replace("; wv", ""));
+                }
+                settings.setJavaScriptCanOpenWindowsAutomatically(true);
+                settings.setDomStorageEnabled(true);
+            }
             currentBridge.setWebViewClient(new BridgeWebViewClient(currentBridge) {
                 @Override
                 public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
