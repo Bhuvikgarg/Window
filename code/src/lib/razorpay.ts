@@ -91,52 +91,50 @@ export async function openRazorpayCheckout({
     throw new Error('Razorpay SDK failed to initialize.')
   }
 
+  const amountPaise = Math.round(amount * 100)
+
+  // Create Razorpay Order via Railway backend to enable UPI Intent and QR
+  let orderId: string | undefined
+  let effectiveKey = key
+  try {
+    const res = await fetch('https://www.raycrafting.store/api/window/order', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        amount: amountPaise,
+        description,
+        userId: prefill?.email || prefill?.name || '',
+      }),
+    })
+    if (res.ok) {
+      const data = (await res.json()) as { orderId?: string; keyId?: string }
+      if (data.orderId) {
+        orderId = data.orderId
+      }
+      if (data.keyId) {
+        effectiveKey = data.keyId
+      }
+    }
+  } catch (err) {
+    console.warn('Could not contact order endpoint, continuing with standard checkout:', err)
+  }
+
   return new Promise<void>((resolve, reject) => {
-    const rzp = new RazorpayConstructor({
-      key,
-      amount: Math.round(amount * 100), // Convert INR to paise
+    const options: Record<string, unknown> = {
+      key: effectiveKey,
+      amount: amountPaise,
       currency: 'INR',
       name,
       description,
       prefill: {
-        name: prefill?.name || '',
-        email: prefill?.email || '',
-        contact: prefill?.contact || '',
+        ...(prefill?.name ? { name: prefill.name } : {}),
+        ...(prefill?.email ? { email: prefill.email } : {}),
+        ...(prefill?.contact ? { contact: prefill.contact } : {}),
       },
       theme: {
         color: '#22c55e', // Window eager-green brand color
-      },
-      config: {
-        display: {
-          blocks: {
-            upi: {
-              name: 'Pay via UPI',
-              instruments: [
-                {
-                  method: 'upi',
-                },
-              ],
-            },
-            other: {
-              name: 'Cards & Other Methods',
-              instruments: [
-                {
-                  method: 'card',
-                },
-                {
-                  method: 'netbanking',
-                },
-                {
-                  method: 'wallet',
-                },
-              ],
-            },
-          },
-          sequence: ['block.upi', 'block.other'],
-          preferences: {
-            show_default_blocks: true,
-          },
-        },
       },
       modal: {
         ondismiss: () => {
@@ -152,7 +150,13 @@ export async function openRazorpayCheckout({
           reject(error instanceof Error ? error : new Error('Failed to process order.'))
         }
       },
-    })
+    }
+
+    if (orderId) {
+      options.order_id = orderId
+    }
+
+    const rzp = new RazorpayConstructor(options)
 
     rzp.on('payment.failed', (response: unknown) => {
       const err = response as { error?: { description?: string } }
