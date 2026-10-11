@@ -106,6 +106,38 @@ export async function openRazorpayCheckout({
       theme: {
         color: '#22c55e', // Window eager-green brand color
       },
+      config: {
+        display: {
+          blocks: {
+            upi: {
+              name: 'Pay via UPI',
+              instruments: [
+                {
+                  method: 'upi',
+                },
+              ],
+            },
+            other: {
+              name: 'Cards & Other Methods',
+              instruments: [
+                {
+                  method: 'card',
+                },
+                {
+                  method: 'netbanking',
+                },
+                {
+                  method: 'wallet',
+                },
+              ],
+            },
+          },
+          sequence: ['block.upi', 'block.other'],
+          preferences: {
+            show_default_blocks: true,
+          },
+        },
+      },
       modal: {
         ondismiss: () => {
           onDismiss?.()
