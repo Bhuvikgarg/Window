@@ -1,7 +1,7 @@
 {
   "name": "window-app",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.5.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,8 +13,8 @@
     "test": "vitest run",
     "test:rules": "firebase emulators:exec --only firestore \"vitest run --config vitest.rules.config.ts\"",
     "emulators": "firebase emulators:start --import=./emulator-data --export-on-exit",
-    "seed": "node --env-file=.env scripts/seed.ts",
-    "seed:emu": "node --env-file=.env.emulator scripts/seed.ts",
+    "seed": "tsx --env-file=.env scripts/seed.ts",
+    "seed:emu": "tsx --env-file=.env.emulator scripts/seed.ts",
     "cap:sync": "pnpm build && cap sync android",
     "cap:open": "cap open android",
     "test:e2e": "firebase emulators:exec --only auth,firestore \"vitest run --config vitest.e2e.config.ts --mode emulator\"",
